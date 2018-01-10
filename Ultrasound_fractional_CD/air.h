@@ -56,7 +56,7 @@ class air:public calculation_2D
 		int cr_judge,cr_points;
 		double ystar,ystop,zstar,zstop;
 		double cr_a,cr_b,cr_c,cr_d,cr_e,cr_f,cr_g,cr_h,cr_i,cr_j,cr_k,cr_l;
-		int *Ny, *Nz, *Sy, *Sz;
+		int *Ny, *Nz, *Sy, *Sz, *Ny1, *Nz1, *Sy1, *Sz1, *zone_y, *zone_z;
 		// for the hill
 		int istar,istop,jstar,jstop;
 		double *cr_y,*cr_z;

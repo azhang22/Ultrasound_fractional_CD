@@ -331,10 +331,11 @@ air::air(scheme_list scheme1,DifferenceStep Step,char *coordi,MovingFrame MF,con
 		for (j=0;j<JMAX;j++) cr_uc[i][j] = 0.0;
 	}
 	
-	Ny = new int[JMAX];	Nz = new int[IMAX];
-	Sy = new int[JMAX];	Sz = new int[IMAX];	
-	for (i=0;i<IMAX;i++){ Nz[i] = 0.0; Sz[i] = 0.0; }
-	for (j=0;j<JMAX;j++){ Ny[j] = 0.0; Sy[j] = 0.0; }
+	Ny = new int[JMAX];	Nz = new int[IMAX]; Ny1 = new int[JMAX]; Nz1 = new int[IMAX];
+	Sy = new int[JMAX];	Sz = new int[IMAX]; Sy1 = new int[JMAX]; Sz1 = new int[IMAX];
+	zone_y = new int[JMAX]; zone_z = new int[IMAX];
+	for (i = 0; i < IMAX; i++) { Nz[i] = 0; Sz[i] = 0; Nz1[i] = 0; Sz1[i] = 0; zone_z[i] = 0; }
+	for (j = 0; j < JMAX; j++) { Ny[j] = 0; Sy[j] = 0; Ny1[j] = 0; Sy1[j] = 0; zone_y[j] = 0; }
 	
 	istar = 0;	istop = 0;	jstar = 0;	jstop = 0;
 
@@ -377,6 +378,9 @@ air::air(scheme_list scheme1,DifferenceStep Step,char *coordi,MovingFrame MF,con
 					Ny[j]++;
 					Nz[i]++;
 				}
+
+				if (cr_uc[i - 1][j] == 0 && cr_uc[i][j] == 1) zone_y[j]++;
+				if (cr_uc[i][j - 1] == 0 && cr_uc[i][j] == 1) zone_z[i]++;
 			}
 		}
 
@@ -384,7 +388,95 @@ air::air(scheme_list scheme1,DifferenceStep Step,char *coordi,MovingFrame MF,con
 		for (j = 1; j < JMAX - 1; j++) if (Ny[j] >= Max_y) Max_y = Ny[j];
 
 		break;
+	case 2:
+		for (i = 1; i < IMAX - 1; i++) {
+			for (j = 1; j < JMAX - 1; j++) {
+				cr_uc[i][j] = 0;
+				double cr_length = sqrt(pow((bottombound_Y[i] - 0.015), 2) + pow((leftbound_Z[j] - 0.01), 2));
+				if (cr_length <= 0.005) {
+					//double cr_length=sqrt(pow((bottombound_Y[i]-0.03),2)+pow((leftbound_Z[j]-0.03),2));
+					//if (cr_length<=0.015){
+					cr_uc[i][j] = 1;
+					if (Ny[j] == 0) Sy[j] = i;
+					if (Nz[i] == 0) Sz[i] = j;
+					Ny[j]++;
+					Nz[i]++;
+				}
+				if (cr_uc[i - 1][j] == 0 && cr_uc[i][j] == 1) zone_y[j]++;
+				if (cr_uc[i][j - 1] == 0 && cr_uc[i][j] == 1) zone_z[i]++;
+			}
+		}
+
+		for (i = 1; i < IMAX - 1; i++) if (Nz[i] >= Max_z) Max_z = Nz[i];
+		for (j = 1; j < JMAX - 1; j++) if (Ny[j] >= Max_y) Max_y = Ny[j];
+
+		break;
+	case 3: // two strips
+		for (i = 1; i < IMAX - 1; i++) {
+			for (j = 1; j < JMAX - 1; j++) {
+				cr_uc[i][j] = 0;
+				if (bottombound_Y[i] >= 0.005 && bottombound_Y[i] <= 0.01 || bottombound_Y[i] >= 0.015 && bottombound_Y[i] <= 0.02) {
+					//double cr_length=sqrt(pow((bottombound_Y[i]-0.03),2)+pow((leftbound_Z[j]-0.03),2));
+					//if (cr_length<=0.015){
+					cr_uc[i][j] = 1;
+				}
+				if (cr_uc[i - 1][j] == 0 && cr_uc[i][j] == 1) zone_y[j]++;
+				if (cr_uc[i][j - 1] == 0 && cr_uc[i][j] == 1) zone_z[i]++;
+				
+				if (cr_uc[i][j] == 1) {
+					if (zone_y[j] == 1 && Ny[j] == 0) Sy[j] = i;
+					if (zone_y[j] == 1) Ny[j]++;
+					if (zone_y[j] == 2 && Ny1[j] == 0) Sy1[j] = i;
+					if (zone_y[j] == 2) Ny1[j]++;
+
+					if (zone_z[i] == 1 && Nz[i] == 0) Sz[i] = j;
+					if (zone_z[i] == 1) Nz[i]++;
+					if (zone_z[i] == 2 && Nz1[i] == 0) Sz1[i] = j;
+					if (zone_z[i] == 2) Nz1[i]++;
+				}
+			}
+		}
+
+		//for (i = 1; i < IMAX - 1; i++) if (Nz[i] >= Max_z) Max_z = Nz[i];
+		//for (j = 1; j < JMAX - 1; j++) if (Ny[j] >= Max_y) Max_y = Ny[j];
+		Max_z = JMAX;
+		Max_y = IMAX;
+
+		break; 
+	case 4: // two strips
+			for (i = 1; i < IMAX - 1; i++) {
+				for (j = 1; j < JMAX - 1; j++) {
+					cr_uc[i][j] = 0;
+					double cr_length = sqrt(pow((bottombound_Y[i] - 0.015), 2) + pow((leftbound_Z[j] - 0.01), 2));
+					if (cr_length <= 0.005 && cr_length >= 0.002) {
+						cr_uc[i][j] = 1;
+					}
+					if (cr_uc[i - 1][j] == 0 && cr_uc[i][j] == 1) zone_y[j]++;
+					if (cr_uc[i][j - 1] == 0 && cr_uc[i][j] == 1) zone_z[i]++;
+
+					if (cr_uc[i][j] == 1) {
+						if (zone_y[j] == 1 && Ny[j] == 0) Sy[j] = i;
+						if (zone_y[j] == 1) Ny[j]++;
+						if (zone_y[j] == 2 && Ny1[j] == 0) Sy1[j] = i;
+						if (zone_y[j] == 2) Ny1[j]++;
+
+						if (zone_z[i] == 1 && Nz[i] == 0) Sz[i] = j;
+						if (zone_z[i] == 1) Nz[i]++;
+						if (zone_z[i] == 2 && Nz1[i] == 0) Sz1[i] = j;
+						if (zone_z[i] == 2) Nz1[i]++;
+					}
+				}
+			}
+
+			//for (i = 1; i < IMAX - 1; i++) if (Nz[i] >= Max_z) Max_z = Nz[i];
+			//for (j = 1; j < JMAX - 1; j++) if (Ny[j] >= Max_y) Max_y = Ny[j];
+			Max_z = JMAX;
+			Max_y = IMAX;
+
+			break;
+
 	}
+	
 
 	//Get_geo();
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -837,19 +929,41 @@ void air::fractional_CD()
 	for (i = 1; i < IMAX - 1; i++) {
 		for (j = 1; j < JMAX - 1; j++) {
 			if (cr_uc[i][j] != 0) {
-				Xl = Sy[j]; Xr = Xl + Ny[j];
-				Yb = Sz[i]; Yt = Yb + Nz[i];
-				temp_x1 = 0.0;	temp_z1 = 0.0;
-				temp_x2 = 0.0;  temp_z2 = 0.0;
-				for (p = (i - Xr); p <= (i - Xl); p++) {
-					P = abs(p);
-					temp_x1 += gp1[P] * p_n[i - p][j];
-					temp_x2 += gp2[P] * delvw_nn[i - p][j];
+				// X(Y) direction:
+				temp_x1 = 0.0;	temp_x2 = 0.0;
+				if (zone_y[j] == 1 || (zone_y[j] == 2 && Y[i][j] >= Sy[j] && Y[i][j] <= Sy[j] + Ny[j])) { // first piece
+					Xl = Sy[j]; Xr = Xl + Ny[j];
+					for (p = (i - Xr); p <= (i - Xl); p++) {
+						P = abs(p);
+						temp_x1 += gp1[P] * p_n[i - p][j];
+						temp_x2 += gp2[P] * delvw_nn[i - p][j];
+					}
 				}
-				for (q = (j - Yt); q <= (j - Yb); q++) {
-					Q = abs(q);
-					temp_z1 += gq1[Q] * p_n[i][j - q];
-					temp_z2 += gq2[Q] * delvw_nn[i][j - q];
+				else if (zone_y[j] == 2 && Y[i][j] >= Sy1[j] && Y[i][j] <= Sy1[j] + Ny1[j]) { // second piece
+					Xl = Sy1[j]; Xr = Xl + Ny1[j];
+					for (p = (i - Xr); p <= (i - Xl); p++) {
+						P = abs(p);
+						temp_x1 += gp1[P] * p_n[i - p][j];
+						temp_x2 += gp2[P] * delvw_nn[i - p][j];
+					}
+				}
+				// Z direction
+				temp_z1 = 0.0;  temp_z2 = 0.0;
+				if (zone_z[i] == 1 || (zone_z[i] == 2 && Z[i][j] >= Sz[i] && Z[i][j] <= Sz[i] + Nz[i])) {
+					Yb = Sz[i]; Yt = Yb + Nz[i];
+					for (q = (j - Yt); q <= (j - Yb); q++) {
+						Q = abs(q);
+						temp_z1 += gq1[Q] * p_n[i][j - q];
+						temp_z2 += gq2[Q] * delvw_nn[i][j - q];
+					}
+				}
+				else if (zone_z[i] == 2 && Z[i][j] >= Sz1[i] && Z[i][j] <= Sz1[i] + Nz1[i]) {
+					Yb = Sz1[i]; Yt = Yb + Nz1[i];
+					for (q = (j - Yt); q <= (j - Yb); q++) {
+						Q = abs(q);
+						temp_z1 += gq1[Q] * p_n[i][j - q];
+						temp_z2 += gq2[Q] * delvw_nn[i][j - q];
+					}
 				}
 				swp_nn[i][j] = (pow_y1 * temp_x1 + pow_z1 * temp_z1);
 				swvw_nn[i][j] = (pow_y2 * temp_x2 + pow_z2 * temp_z2);
